@@ -1,0 +1,28 @@
+# Backups
+backup/
+backups/
+woowoomo-backup/
+woowoomo.zip
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+out/
+dist/
+
+# Environment / Secrets
+.env
+.env.*
+!.env.*.template
+.env.competition
+
+# IDE / tools
+.omc/
+.claude/
+.gemini/
+
+# Temp / cache
+.ruff_cache/
+.tmp-*/

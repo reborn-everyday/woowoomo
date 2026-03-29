@@ -1,0 +1,19 @@
+# Environment / Secrets
+.env
+.env.competition
+!.env.competition.template
+
+# Competition
+.opencode-competition/
+.opencode-local/
+competition/
+
+# Sisyphus
+.sisyphus/
+
+# Cache / temp
+__pycache__/
+*.pyc
+.ruff_cache/
+.tmp-*/
+*.env.competition.template
