@@ -1,2 +1,2 @@
 # woowoomo
-우리는 우리를 모른다/We don
+우리는 우리를 모른다/We don't know What we Mean
