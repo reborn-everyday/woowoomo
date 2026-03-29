@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .viewer-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navigation bar */
+    .nav-bar {
+      height: 48px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .nav-bar button {
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .nav-bar button:hover {
+      background: #555;
+    }
+
+    .nav-bar button:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .slide-counter {
+      color: #aaa;
+      font-size: 14px;
+      font-weight: 500;
+      min-width: 60px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-fullscreen {
+      position: absolute;
+      right: 16px;
+      background: transparent !important;
+      font-size: 18px;
+      padding: 6px 10px !important;
+    }
+
+    /* Slide viewport */
+    .slide-viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .slide-scaler {
+      width: 720pt;
+      height: 405pt;
+      position: relative;
+      transform-origin: center center;
+    }
+
+    /* Slide frames (iframes) */
+    .slide-frame {
+      position: absolute;
+      inset: 0;
+      width: 720pt;
+      height: 405pt;
+      border: none;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .slide-frame.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="viewer-container">
+    <!-- Navigation -->
+    <div class="nav-bar">
+      <button id="btn-prev" title="Previous (\u2190)">Prev</button>
+      <span class="slide-counter" id="counter">1 / 8</span>
+      <button id="btn-next" title="Next (\u2192)">Next</button>
+      <button class="btn-fullscreen" id="btn-fs" title="Fullscreen (F)">&#x26F6;</button>
+    </div>
+
+    <!-- Slide viewport -->
+    <div class="slide-viewport" id="viewport">
+      <div class="slide-scaler" id="scaler">
+        <iframe class="slide-frame active" data-slide="1" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-01.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0d0d0d;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+      <div style=&quot;width: 8pt; height: 8pt; background: #ffffff; border-radius: 50%;&quot;></div>
+      <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff; letter-spacing: 0.02em;&quot;>우우모</p>
+    </div>
+    <p style=&quot;display: inline-block; padding: 4pt 12pt; border: 1px solid #444; border-radius: 12pt; font-size: 8pt; font-weight: 500; color: #999; letter-spacing: 0.06em;&quot;>RALPHTHON SEOUL 2025</p>
+  </div>
+
+  <!-- 메인 타이틀 -->
+  <div style=&quot;flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 16pt 0;&quot;>
+    <p style=&quot;font-size: 10pt; color: #666; letter-spacing: 0.08em; margin-bottom: 20pt;&quot;>QUESTION</p>
+    <h1 style=&quot;font-size: 34pt; font-weight: 500; color: #ffffff; letter-spacing: -0.02em; line-height: 1.3; max-width: 520pt;&quot;>
+      여러분은 오늘 하루,<br>
+      정말 원하던 삶을<br>
+      <span style=&quot;color: #ffffff; font-weight: 700;&quot;>몇 분이나</span> 사셨나요?
+    </h1>
+    <div style=&quot;margin-top: 24pt; display: flex; align-items: center; gap: 16pt;&quot;>
+      <div style=&quot;width: 32pt; height: 1pt; background: #444;&quot;></div>
+      <p style=&quot;font-size: 12pt; color: #888; font-style: italic;&quot;>우리도 우리를 모른다 — We Don't Know Ourselves</p>
+    </div>
+  </div>
+
+  <!-- 팀 정보 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: flex-end;&quot;>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #555; margin-bottom: 4pt;&quot;>TEAM</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #ccc;&quot;>홍다솔 · 홍연정 · 권오영 · 조용래</p>
+    </div>
+    <div style=&quot;text-align: right;&quot;>
+      <p style=&quot;font-size: 9pt; color: #555; margin-bottom: 4pt;&quot;>GITHUB</p>
+      <p style=&quot;font-size: 10pt; color: #666;&quot;>github.com/reborn-everyday/woowoomo</p>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="2" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-02.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 24pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600; letter-spacing: 0.04em;&quot;>PROBLEM</p>
+      <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #1a1a1a;&quot;>문제는 의지력이 아닙니다</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #ccc;&quot;>02</p>
+  </div>
+
+  <!-- 메인 콘텐츠 -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 28pt;&quot;>
+    <!-- 왼쪽: 스탯 + 사례 -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 14pt;&quot;>
+      <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 16pt 20pt;&quot;>
+        <div style=&quot;display: flex; align-items: baseline; gap: 8pt;&quot;>
+          <p style=&quot;font-size: 36pt; font-weight: 700; color: #1a1a1a; letter-spacing: -0.03em;&quot;>3시간</p>
+          <p style=&quot;font-size: 11pt; color: #666;&quot;>미만</p>
+        </div>
+        <p style=&quot;font-size: 10pt; color: #888; margin-top: 4pt;&quot;>지식 노동자의 하루 평균 딥워크</p>
+      </div>
+      <div style=&quot;border-left: 3pt solid #1a1a1a; padding: 12pt 16pt; background: #fafafa; border-radius: 0 8pt 8pt 0;&quot;>
+        <p style=&quot;font-size: 10pt; color: #555; line-height: 1.8;&quot;>
+          &quot;아침에 오늘 꼭 끝내야 할 업무를 정했다.<br>
+          오후 7시, <strong style=&quot;color: #1a1a1a;&quot;>나는 그것을 끝내지 못한 나를 발견했다.</strong><br>
+          예상치 못한 미팅, 질문, 업무 요청...<br>
+          결국 오후 10시까지 야근. <em>매일 반복.</em>&quot;
+        </p>
+        <p style=&quot;font-size: 8pt; color: #aaa; margin-top: 8pt;&quot;>발생 빈도: 매일 1–3회</p>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 경쟁 비교 -->
+    <div>
+      <p style=&quot;font-size: 9pt; color: #999; letter-spacing: 0.05em; margin-bottom: 10pt;&quot;>기존 솔루션의 한계</p>
+      <table style=&quot;width: 100%; border-collapse: collapse; font-size: 9pt;&quot;>
+        <thead>
+          <tr>
+            <th style=&quot;text-align: left; padding: 6pt 8pt; font-size: 8pt; color: #aaa; font-weight: 500; border-bottom: 1px solid #eee;&quot;></th>
+            <th style=&quot;text-align: center; padding: 6pt 8pt; font-size: 8pt; color: #aaa; font-weight: 500; border-bottom: 1px solid #eee;&quot;>RescueTime</th>
+            <th style=&quot;text-align: center; padding: 6pt 8pt; font-size: 8pt; color: #aaa; font-weight: 500; border-bottom: 1px solid #eee;&quot;>Toggl</th>
+            <th style=&quot;text-align: center; padding: 6pt 8pt; font-size: 9pt; color: #1a1a1a; font-weight: 700; border-bottom: 2px solid #1a1a1a; background: #f5f5f0;&quot;>우우모</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style=&quot;padding: 6pt 8pt; color: #888; border-bottom: 1px solid #f0f0f0;&quot;>수집</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;&quot;>앱 기록</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;&quot;>수동 타이머</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; border-bottom: 1px solid #f0f0f0; background: #fafafa;&quot;>Vision AI 자동</td>
+          </tr>
+          <tr>
+            <td style=&quot;padding: 6pt 8pt; color: #888; border-bottom: 1px solid #f0f0f0;&quot;>분석</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;&quot;>카테고리 집계</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;&quot;>프로젝트 시간</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; border-bottom: 1px solid #f0f0f0; background: #fafafa;&quot;>맥락·전환·이유</td>
+          </tr>
+          <tr>
+            <td style=&quot;padding: 6pt 8pt; color: #888; border-bottom: 1px solid #f0f0f0;&quot;>목표 연동</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;&quot;>없음</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;&quot;>있음</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; border-bottom: 1px solid #f0f0f0; background: #fafafa;&quot;>Alignment Score</td>
+          </tr>
+          <tr>
+            <td style=&quot;padding: 6pt 8pt; color: #888;&quot;>프라이버시</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa;&quot;>클라우드</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #aaa;&quot;>클라우드</td>
+            <td style=&quot;padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; background: #fafafa;&quot;>완전 로컬</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="3" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-03.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 16pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>SOLUTION</p>
+      <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #1a1a1a;&quot;>우우모: 당신이 놓친 하루를 복원하는 AI 에이전트</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #ccc;&quot;>03</p>
+  </div>
+
+  <!-- 한 문장 정의 -->
+  <div style=&quot;border-left: 3pt solid #1a1a1a; padding: 10pt 16pt; background: #f5f5f0; border-radius: 0 8pt 8pt 0; margin-bottom: 20pt;&quot;>
+    <p style=&quot;font-size: 12pt; color: #1a1a1a; line-height: 1.6; font-style: italic;&quot;>
+      &quot;우우모는 시간을 추적하는 게 아니라, 사람의 <strong>'인지 상태'</strong>를 저장하고 복원하는 시스템입니다.&quot;
+    </p>
+  </div>
+
+  <!-- 흐름 + 3가지 기능 -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt;&quot;>
+    <!-- 왼쪽: 핵심 흐름 -->
+    <div>
+      <p style=&quot;font-size: 9pt; color: #999; letter-spacing: 0.05em; margin-bottom: 12pt;&quot;>핵심 흐름</p>
+      <div style=&quot;display: flex; flex-direction: column; gap: 8pt;&quot;>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+          <div style=&quot;width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+            <p style=&quot;font-size: 9pt; color: #fff; font-weight: 700;&quot;>1</p>
+          </div>
+          <p style=&quot;font-size: 11pt; color: #1a1a1a; font-weight: 500;&quot;>매일 아침 목표 설정</p>
+        </div>
+        <div style=&quot;width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;&quot;></div>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+          <div style=&quot;width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+            <p style=&quot;font-size: 9pt; color: #fff; font-weight: 700;&quot;>2</p>
+          </div>
+          <p style=&quot;font-size: 11pt; color: #1a1a1a; font-weight: 500;&quot;>5분마다 화면 스크린샷</p>
+        </div>
+        <div style=&quot;width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;&quot;></div>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+          <div style=&quot;width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+            <p style=&quot;font-size: 9pt; color: #fff; font-weight: 700;&quot;>3</p>
+          </div>
+          <p style=&quot;font-size: 11pt; color: #1a1a1a; font-weight: 500;&quot;>Claude Vision 분석</p>
+        </div>
+        <div style=&quot;width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;&quot;></div>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+          <div style=&quot;width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+            <p style=&quot;font-size: 9pt; color: #fff; font-weight: 700;&quot;>4</p>
+          </div>
+          <p style=&quot;font-size: 11pt; color: #1a1a1a; font-weight: 500;&quot;>목표-행동 갭 분석</p>
+        </div>
+        <div style=&quot;width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;&quot;></div>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+          <div style=&quot;width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+            <p style=&quot;font-size: 9pt; color: #fff; font-weight: 700;&quot;>5</p>
+          </div>
+          <p style=&quot;font-size: 11pt; color: #1a1a1a; font-weight: 500;&quot;>저녁 자동 리포트 + 다음 행동 제안</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 3가지 핵심 기능 -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 12pt;&quot;>
+      <p style=&quot;font-size: 9pt; color: #999; letter-spacing: 0.05em;&quot;>3가지 핵심 기능</p>
+      <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 14pt 16pt;&quot;>
+        <p style=&quot;font-size: 10pt; font-weight: 700; color: #1a1a1a; margin-bottom: 4pt;&quot;>Zero-Effort Tracking</p>
+        <p style=&quot;font-size: 10pt; color: #666; line-height: 1.5;&quot;>아무것도 입력하지 않아도 Vision AI가 집중과 딴짓을 자동 감지</p>
+      </div>
+      <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 14pt 16pt;&quot;>
+        <p style=&quot;font-size: 10pt; font-weight: 700; color: #1a1a1a; margin-bottom: 4pt;&quot;>Contextual Time-Travel</p>
+        <p style=&quot;font-size: 10pt; color: #666; line-height: 1.5;&quot;>중단된 작업의 맥락 완벽 보관 — 뇌의 로딩 시간 제로</p>
+      </div>
+      <div style=&quot;background: #1a1a1a; border-radius: 10pt; padding: 14pt 16pt;&quot;>
+        <p style=&quot;font-size: 10pt; font-weight: 700; color: #ffffff; margin-bottom: 4pt;&quot;>저녁 6시 AI 브리핑</p>
+        <p style=&quot;font-size: 10pt; color: #999; line-height: 1.5;&quot;>AI가 하루 전체를 자동 분석해 리포트와 행동 제안 생성</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="4" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-04.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 30pt 44pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 14pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 3pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>AI ①</p>
+      <h2 style=&quot;font-size: 17pt; font-weight: 600; color: #1a1a1a;&quot;>Vision AI가 영상을 분석하고 행동을 해석하는 방법</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #ccc;&quot;>04</p>
+  </div>
+
+  <!-- 2컬럼 레이아웃 -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; gap: 20pt;&quot;>
+
+    <!-- 왼쪽: 3단계 파이프라인 -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 6pt;&quot;>
+
+      <!-- 입력 -->
+      <div style=&quot;background: #f5f5f0; border-radius: 8pt; padding: 9pt 12pt;&quot;>
+        <p style=&quot;font-size: 8pt; color: #999; letter-spacing: 0.04em; margin-bottom: 3pt;&quot;>INPUT</p>
+        <p style=&quot;font-size: 10pt; font-weight: 700; color: #1a1a1a; margin-bottom: 3pt;&quot;>유튜브 — 조코딩 라이브 시청 중</p>
+        <p style=&quot;font-size: 8.5pt; color: #888; line-height: 1.5;&quot;>5분마다 화면 캡처(JPEG 1280px) + 30초마다 포커스 앱·윈도우 타이틀 기록</p>
+      </div>
+
+      <div style=&quot;text-align: center; font-size: 10pt; color: #ccc;&quot;>↓</div>
+
+      <!-- Step 1 -->
+      <div style=&quot;border: 1px solid #e0e0e0; border-radius: 8pt; padding: 9pt 12pt;&quot;>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 4pt;&quot;>
+          <p style=&quot;font-size: 8pt; font-weight: 700; color: #fff; background: #1a1a1a; padding: 2pt 6pt; border-radius: 3pt;&quot;>Step 1</p>
+          <p style=&quot;font-size: 9pt; font-weight: 700; color: #1a1a1a;&quot;>Vision 설명 — Claude Vision API (단독 call)</p>
+        </div>
+        <p style=&quot;font-size: 8.5pt; color: #666; line-height: 1.5;&quot;>화면을 있는 그대로 묘사. 유튜브 영상이라면 <strong style=&quot;color: #1a1a1a;&quot;>영상 안 발표자 화면</strong>까지 분석 대상으로 지정.</p>
+        <p style=&quot;font-size: 8pt; font-family: monospace; color: #888; margin-top: 5pt; background: #fafafa; padding: 5pt 8pt; border-radius: 4pt; line-height: 1.6;&quot;>&quot;VS Code에서 useEffect 코드 작성 중 → Terminal npm run dev → 브라우저 전환&quot;</p>
+      </div>
+
+      <div style=&quot;text-align: center; font-size: 10pt; color: #ccc;&quot;>↓</div>
+
+      <!-- Step 2 -->
+      <div style=&quot;border: 1px solid #e0e0e0; border-radius: 8pt; padding: 9pt 12pt;&quot;>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 4pt;&quot;>
+          <p style=&quot;font-size: 8pt; font-weight: 700; color: #fff; background: #1a1a1a; padding: 2pt 6pt; border-radius: 3pt;&quot;>Step 2</p>
+          <p style=&quot;font-size: 9pt; font-weight: 700; color: #1a1a1a;&quot;>Categorization — 별도 API call 분리 (AGENTS.md 필수 규칙)</p>
+        </div>
+        <div style=&quot;display: flex; align-items: center; gap: 5pt; flex-wrap: wrap; margin-bottom: 4pt;&quot;>
+          <p style=&quot;font-size: 8pt; font-weight: 700; color: #1a1a1a; background: #f0f0e8; padding: 2pt 7pt; border-radius: 4pt;&quot;>coding ✓</p>
+          <p style=&quot;font-size: 8pt; color: #ccc; padding: 2pt 7pt;&quot;>writing</p>
+          <p style=&quot;font-size: 8pt; color: #ccc; padding: 2pt 7pt;&quot;>reading</p>
+          <p style=&quot;font-size: 8pt; color: #ccc; padding: 2pt 7pt;&quot;>media</p>
+          <p style=&quot;font-size: 8pt; color: #ccc; padding: 2pt 7pt;&quot;>messaging</p>
+          <p style=&quot;font-size: 8pt; color: #ccc; padding: 2pt 7pt;&quot;>other...</p>
+        </div>
+        <p style=&quot;font-size: 8pt; color: #aaa; line-height: 1.4;&quot;>두 단계를 합치면 AI가 분류를 맞추려고 시각 설명을 왜곡함 (Goodhart's Law) — 반드시 분리</p>
+      </div>
+
+    </div>
+
+    <!-- 오른쪽: 컨텍스트 전환 감지 + 해석 + 제안 -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 8pt;&quot;>
+
+      <p style=&quot;font-size: 8pt; color: #999; letter-spacing: 0.04em;&quot;>OUTPUT</p>
+
+      <!-- 컨텍스트 전환 감지 -->
+      <div style=&quot;background: #f5f5f0; border-radius: 8pt; padding: 10pt 12pt;&quot;>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #1a1a1a; margin-bottom: 5pt;&quot;>컨텍스트 전환 감지</p>
+        <div style=&quot;display: flex; flex-direction: column; gap: 4pt;&quot;>
+          <div style=&quot;display: flex; align-items: center; gap: 6pt;&quot;>
+            <p style=&quot;font-size: 8pt; color: #888; width: 60pt; flex-shrink: 0;&quot;>Window Watcher</p>
+            <p style=&quot;font-size: 8pt; color: #555;&quot;>&quot;조코딩 - YouTube&quot; 타이틀 변화 감지</p>
+          </div>
+          <div style=&quot;display: flex; align-items: center; gap: 6pt;&quot;>
+            <p style=&quot;font-size: 8pt; color: #888; width: 60pt; flex-shrink: 0;&quot;>Vision</p>
+            <p style=&quot;font-size: 8pt; color: #555;&quot;>coding → media category 변화 감지</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 행동 해석 -->
+      <div style=&quot;background: #f5f5f0; border-radius: 8pt; padding: 10pt 12pt;&quot;>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #1a1a1a; margin-bottom: 5pt;&quot;>행동 해석</p>
+        <p style=&quot;font-size: 8.5pt; color: #555; line-height: 1.6;&quot;>coding 블록 38분 집중 →<br>유튜브로 컨텍스트 전환, 목표 대비 집중도 63%</p>
+      </div>
+
+      <!-- 다음 액션 제안 -->
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 10pt 12pt; flex: 1;&quot;>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #fff; margin-bottom: 5pt;&quot;>다음 액션 제안</p>
+        <p style=&quot;font-size: 8.5pt; color: #999; line-height: 1.7;&quot;>&quot;useEffect 작업이 중단됐습니다.<br>지금 25분 딥워크 블록으로 돌아가세요.<br>오전 이 시간대가 오늘 집중도 최고입니다.&quot;</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="5" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-05.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0d0d0d;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 20pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #ffffff; color: #1a1a1a; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>AI ②</p>
+      <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #ffffff;&quot;>아무것도 안 해도, 하루가 끝나면 AI가 먼저 손을 내밉니다</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #444;&quot;>05</p>
+  </div>
+
+  <!-- 저녁 6시 브리핑 레이블 -->
+  <p style=&quot;font-size: 9pt; color: #666; letter-spacing: 0.08em; margin-bottom: 16pt;&quot;>저녁 6시 자동 브리핑 — 5개 섹션</p>
+
+  <!-- 5개 섹션 카드 -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10pt;&quot;>
+    <div style=&quot;background: #1a1a1a; border-radius: 10pt; padding: 14pt 12pt; display: flex; flex-direction: column; justify-content: space-between;&quot;>
+      <p style=&quot;font-size: 18pt;&quot;>📈</p>
+      <div>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #ffffff; margin-bottom: 6pt;&quot;>Focus Curve</p>
+        <p style=&quot;font-size: 9pt; color: #666; line-height: 1.5;&quot;>시간대별 집중도 변화 시각화</p>
+      </div>
+    </div>
+    <div style=&quot;background: #1a1a1a; border-radius: 10pt; padding: 14pt 12pt; display: flex; flex-direction: column; justify-content: space-between;&quot;>
+      <p style=&quot;font-size: 18pt;&quot;>🎯</p>
+      <div>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #ffffff; margin-bottom: 6pt;&quot;>Goal Alignment</p>
+        <p style=&quot;font-size: 9pt; color: #666; line-height: 1.5;&quot;>목표 달성률<br>0.0 ~ 1.0</p>
+      </div>
+    </div>
+    <div style=&quot;background: #ffffff; border-radius: 10pt; padding: 14pt 12pt; display: flex; flex-direction: column; justify-content: space-between;&quot;>
+      <p style=&quot;font-size: 18pt;&quot;>💡</p>
+      <div>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #1a1a1a; margin-bottom: 6pt;&quot;>Tomorrow's Nudge</p>
+        <p style=&quot;font-size: 9pt; color: #666; line-height: 1.5;&quot;>AI가 제안하는 내일의 행동 3가지</p>
+      </div>
+    </div>
+    <div style=&quot;background: #1a1a1a; border-radius: 10pt; padding: 14pt 12pt; display: flex; flex-direction: column; justify-content: space-between;&quot;>
+      <p style=&quot;font-size: 18pt;&quot;>🔧</p>
+      <div>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #ffffff; margin-bottom: 6pt;&quot;>Bottleneck Solver</p>
+        <p style=&quot;font-size: 9pt; color: #666; line-height: 1.5;&quot;>반복 병목 +<br>위임 버튼</p>
+      </div>
+    </div>
+    <div style=&quot;background: #1a1a1a; border-radius: 10pt; padding: 14pt 12pt; display: flex; flex-direction: column; justify-content: space-between;&quot;>
+      <p style=&quot;font-size: 18pt;&quot;>🔄</p>
+      <div>
+        <p style=&quot;font-size: 9pt; font-weight: 700; color: #ffffff; margin-bottom: 6pt;&quot;>Interrupted Tasks</p>
+        <p style=&quot;font-size: 9pt; color: #666; line-height: 1.5;&quot;>중단 작업 +<br>재개 제안</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 예시 -->
+  <div style=&quot;margin-top: 16pt; background: #111; border-radius: 8pt; padding: 12pt 16pt; border-left: 3pt solid #ffffff;&quot;>
+    <p style=&quot;font-size: 10pt; color: #999; font-style: italic; line-height: 1.6;&quot;>
+      &quot;기억하지 않아도, 아무것도 누르지 않아도, 하루가 끝나면 AI가 스스로 당신의 하루를 정리해서 내밀어 줍니다.&quot;
+    </p>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="6" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-06.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 18pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>CODING AGENT</p>
+      <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #1a1a1a;&quot;>에이전트가 에이전트를 만들었습니다</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #ccc;&quot;>06</p>
+  </div>
+
+  <p style=&quot;font-size: 10pt; color: #888; margin-bottom: 16pt; letter-spacing: 0.02em;&quot;>ZERO HUMAN INTERVENTION — 5시간 자율 실행, 허용된 인간 개입 단 3가지</p>
+
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16pt;&quot;>
+    <!-- AGENTS.md -->
+    <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 16pt;&quot;>
+      <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 12pt;&quot;>
+        <div style=&quot;width: 24pt; height: 24pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+          <p style=&quot;font-size: 10pt; color: #fff; font-weight: 700;&quot;>①</p>
+        </div>
+        <p style=&quot;font-size: 11pt; font-weight: 700; color: #1a1a1a;&quot;>AGENTS.md</p>
+      </div>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 10pt;&quot;>에이전트의 헌법</p>
+      <div style=&quot;display: flex; flex-direction: column; gap: 6pt;&quot;>
+        <div style=&quot;display: flex; align-items: flex-start; gap: 6pt;&quot;>
+          <p style=&quot;font-size: 8pt; color: #aaa; margin-top: 1pt;&quot;>▸</p>
+          <p style=&quot;font-size: 9pt; color: #555; line-height: 1.4;&quot;>기술 스택 결정표</p>
+        </div>
+        <div style=&quot;display: flex; align-items: flex-start; gap: 6pt;&quot;>
+          <p style=&quot;font-size: 8pt; color: #aaa; margin-top: 1pt;&quot;>▸</p>
+          <p style=&quot;font-size: 9pt; color: #555; line-height: 1.4;&quot;>TypeScript 컨벤션 15개</p>
+        </div>
+        <div style=&quot;display: flex; align-items: flex-start; gap: 6pt;&quot;>
+          <p style=&quot;font-size: 8pt; color: #aaa; margin-top: 1pt;&quot;>▸</p>
+          <p style=&quot;font-size: 9pt; color: #555; line-height: 1.4;&quot;>Must NOT Have 가드레일</p>
+        </div>
+        <div style=&quot;display: flex; align-items: flex-start; gap: 6pt;&quot;>
+          <p style=&quot;font-size: 8pt; color: #aaa; margin-top: 1pt;&quot;>▸</p>
+          <p style=&quot;font-size: 9pt; color: #555; line-height: 1.4;&quot;>레이어별 격리 규칙</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wave System -->
+    <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 16pt;&quot;>
+      <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 12pt;&quot;>
+        <div style=&quot;width: 24pt; height: 24pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+          <p style=&quot;font-size: 10pt; color: #fff; font-weight: 700;&quot;>②</p>
+        </div>
+        <p style=&quot;font-size: 11pt; font-weight: 700; color: #1a1a1a;&quot;>Wave System</p>
+      </div>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 10pt;&quot;>27개 태스크 → 6개 Wave 자율 실행</p>
+      <div style=&quot;display: flex; flex-direction: column; gap: 4pt;&quot;>
+        <div style=&quot;display: flex; justify-content: space-between; align-items: center; background: #e8e8e4; border-radius: 4pt; padding: 4pt 8pt;&quot;>
+          <p style=&quot;font-size: 8pt; font-weight: 600; color: #1a1a1a;&quot;>Wave 1</p>
+          <p style=&quot;font-size: 8pt; color: #666;&quot;>scaffold · types · DB · AI · image</p>
+        </div>
+        <div style=&quot;display: flex; justify-content: space-between; align-items: center; background: #e8e8e4; border-radius: 4pt; padding: 4pt 8pt;&quot;>
+          <p style=&quot;font-size: 8pt; font-weight: 600; color: #1a1a1a;&quot;>Wave 2</p>
+          <p style=&quot;font-size: 8pt; color: #666;&quot;>watcher · screenshot · AI pipeline</p>
+        </div>
+        <div style=&quot;display: flex; justify-content: space-between; align-items: center; background: #e8e8e4; border-radius: 4pt; padding: 4pt 8pt;&quot;>
+          <p style=&quot;font-size: 8pt; font-weight: 600; color: #1a1a1a;&quot;>Wave 3–5</p>
+          <p style=&quot;font-size: 8pt; color: #666;&quot;>report · UI · tray · tests...</p>
+        </div>
+        <div style=&quot;display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; border-radius: 4pt; padding: 4pt 8pt;&quot;>
+          <p style=&quot;font-size: 8pt; font-weight: 700; color: #fff;&quot;>Wave FINAL</p>
+          <p style=&quot;font-size: 8pt; color: #888;&quot;>Audit · QA · Scope check</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Harness -->
+    <div style=&quot;background: #1a1a1a; border-radius: 10pt; padding: 16pt;&quot;>
+      <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 12pt;&quot;>
+        <div style=&quot;width: 24pt; height: 24pt; background: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+          <p style=&quot;font-size: 10pt; color: #1a1a1a; font-weight: 700;&quot;>③</p>
+        </div>
+        <p style=&quot;font-size: 11pt; font-weight: 700; color: #ffffff;&quot;>Harness</p>
+      </div>
+      <p style=&quot;font-size: 9pt; color: #666; margin-bottom: 10pt;&quot;>자기 수정 루프</p>
+      <div style=&quot;display: flex; flex-direction: column; gap: 8pt;&quot;>
+        <div style=&quot;border: 1px solid #333; border-radius: 6pt; padding: 8pt 10pt; text-align: center;&quot;>
+          <p style=&quot;font-size: 9pt; color: #fff;&quot;>태스크 완료</p>
+          <p style=&quot;font-size: 8pt; color: #666; margin-top: 2pt;&quot;>QA 증거 자동 저장</p>
+        </div>
+        <p style=&quot;font-size: 12pt; text-align: center; color: #444;&quot;>↓</p>
+        <div style=&quot;border: 1px solid #333; border-radius: 6pt; padding: 8pt 10pt; text-align: center;&quot;>
+          <p style=&quot;font-size: 9pt; color: #fff;&quot;>REJECT → 자동 수정</p>
+          <p style=&quot;font-size: 8pt; color: #666; margin-top: 2pt;&quot;>재검증 루프</p>
+        </div>
+        <p style=&quot;font-size: 12pt; text-align: center; color: #444;&quot;>↓</p>
+        <div style=&quot;background: #333; border-radius: 6pt; padding: 8pt 10pt; text-align: center;&quot;>
+          <p style=&quot;font-size: 9pt; font-weight: 700; color: #fff;&quot;>4개 APPROVE → 완료</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="7" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-07.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 20pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 10pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>BUSINESS</p>
+      <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #1a1a1a;&quot;>세 개의 수익 레이어, 그리고 하나의 거대한 미래</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #ccc;&quot;>07</p>
+  </div>
+
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; gap: 24pt;&quot;>
+    <!-- 왼쪽: 3개 수익 레이어 -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
+      <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 14pt 16pt;&quot;>
+        <div style=&quot;display: flex; justify-content: space-between; align-items: flex-start;&quot;>
+          <div>
+            <p style=&quot;font-size: 8pt; color: #999; letter-spacing: 0.04em; margin-bottom: 4pt;&quot;>레이어 1</p>
+            <p style=&quot;font-size: 12pt; font-weight: 700; color: #1a1a1a;&quot;>개인 플랜 (Freemium)</p>
+          </div>
+          <p style=&quot;font-size: 14pt; font-weight: 700; color: #1a1a1a;&quot;>$12<span style=&quot;font-size: 9pt; font-weight: 400; color: #888;&quot;>/월</span></p>
+        </div>
+        <p style=&quot;font-size: 9pt; color: #888; margin-top: 6pt;&quot;>Free: 7일 히스토리 · Pro: 무제한 + 자동 브리핑</p>
+      </div>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 10pt; padding: 14pt 16pt;&quot;>
+        <div style=&quot;display: flex; justify-content: space-between; align-items: flex-start;&quot;>
+          <div>
+            <p style=&quot;font-size: 8pt; color: #666; letter-spacing: 0.04em; margin-bottom: 4pt;&quot;>레이어 2 — 가장 빠른 수익화</p>
+            <p style=&quot;font-size: 12pt; font-weight: 700; color: #ffffff;&quot;>Professional's Logbook</p>
+          </div>
+        </div>
+        <p style=&quot;font-size: 9pt; color: #888; margin-top: 6pt;&quot;>변호사·컨설턴트 청구 시간 자동 증빙</p>
+        <p style=&quot;font-size: 11pt; font-weight: 700; color: #ffffff; margin-top: 6pt;&quot;>행정 비용 80% 절감</p>
+      </div>
+
+      <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 14pt 16pt;&quot;>
+        <div style=&quot;display: flex; justify-content: space-between; align-items: flex-start;&quot;>
+          <div>
+            <p style=&quot;font-size: 8pt; color: #999; letter-spacing: 0.04em; margin-bottom: 4pt;&quot;>레이어 3</p>
+            <p style=&quot;font-size: 12pt; font-weight: 700; color: #1a1a1a;&quot;>팀 플랜 B2B</p>
+          </div>
+          <p style=&quot;font-size: 14pt; font-weight: 700; color: #1a1a1a;&quot;>$8<span style=&quot;font-size: 9pt; font-weight: 400; color: #888;&quot;>/월·인</span></p>
+        </div>
+        <p style=&quot;font-size: 9pt; color: #888; margin-top: 6pt;&quot;>완전 로컬 → 개인 데이터 미공유 → B2B 채택 장벽 낮춤</p>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 시장 규모 -->
+    <div style=&quot;display: flex; flex-direction: column; justify-content: space-between;&quot;>
+      <div>
+        <p style=&quot;font-size: 9pt; color: #999; letter-spacing: 0.05em; margin-bottom: 12pt;&quot;>시장 규모</p>
+        <div style=&quot;display: flex; flex-direction: column; gap: 12pt;&quot;>
+          <div style=&quot;overflow: visible;&quot;>
+            <p style=&quot;font-size: 30pt; font-weight: 700; color: #1a1a1a; letter-spacing: -0.02em; line-height: 1.2;&quot;>10억</p>
+            <p style=&quot;font-size: 10pt; color: #888; margin-top: 4pt;&quot;>글로벌 지식 노동자</p>
+          </div>
+          <div style=&quot;overflow: visible;&quot;>
+            <p style=&quot;font-size: 30pt; font-weight: 700; color: #1a1a1a; letter-spacing: -0.02em; line-height: 1.2;&quot;>$96B</p>
+            <p style=&quot;font-size: 10pt; color: #888; margin-top: 4pt;&quot;>생산성 SaaS 시장 (2025)</p>
+          </div>
+        </div>
+      </div>
+      <div style=&quot;background: #f5f5f0; border-radius: 10pt; padding: 14pt 16pt;&quot;>
+        <p style=&quot;font-size: 10pt; font-weight: 700; color: #1a1a1a; margin-bottom: 6pt;&quot;>&quot;AI가 자동으로 하루를 분석해주는&quot; 카테고리</p>
+        <p style=&quot;font-size: 12pt; font-weight: 700; color: #1a1a1a;&quot;>아직 비어있습니다.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="8" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-08.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0d0d0d;
+      padding: 48pt;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <!-- 로고 -->
+  <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+    <div style=&quot;width: 8pt; height: 8pt; background: #ffffff; border-radius: 50%;&quot;></div>
+    <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff; letter-spacing: 0.02em;&quot;>우우모</p>
+  </div>
+
+  <!-- 메인 비전 -->
+  <div>
+    <p style=&quot;font-size: 10pt; color: #555; letter-spacing: 0.08em; margin-bottom: 16pt;&quot;>VISION</p>
+    <h1 style=&quot;font-size: 32pt; font-weight: 500; color: #ffffff; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 20pt;&quot;>
+      지금은 하루를 복원합니다.<br>
+      다음은 당신의<br>
+      <span style=&quot;font-weight: 700;&quot;>에이전트 OS</span>가 됩니다.
+    </h1>
+    <p style=&quot;font-size: 12pt; color: #666; line-height: 1.8; max-width: 480pt;&quot;>
+      인간의 행동 데이터를 가장 정밀하게 가진 이 앱은,<br>
+      향후 모든 퍼스널 에이전트의 OS가 됩니다.<br>
+      <span style=&quot;color: #999;&quot;>의지의 영역을 시스템의 영역으로.</span><br>
+      <span style=&quot;color: #777;&quot;>이것이 신경다양성 시대를 위한 인지 인프라입니다.</span>
+    </p>
+  </div>
+
+  <!-- 마지막 한 줄 + GitHub -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: flex-end;&quot;>
+    <div style=&quot;border-left: 2pt solid #ffffff; padding-left: 14pt;&quot;>
+      <p style=&quot;font-size: 14pt; font-weight: 500; color: #ffffff; font-style: italic; line-height: 1.5;&quot;>
+        &quot;우우모는 당신이 원하던 삶을,<br>데이터로 되찾아 줍니다.&quot;
+      </p>
+    </div>
+    <div style=&quot;text-align: right;&quot;>
+      <p style=&quot;font-size: 9pt; color: #555; margin-bottom: 4pt;&quot;>GITHUB</p>
+      <p style=&quot;font-size: 10pt; color: #666;&quot;>github.com/reborn-everyday/woowoomo</p>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL = 8;
+    let current = 1;
+
+    const frames = document.querySelectorAll('.slide-frame');
+    const counter = document.getElementById('counter');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const scaler = document.getElementById('scaler');
+    const viewport = document.getElementById('viewport');
+
+    function goTo(n) {
+      n = Math.max(1, Math.min(TOTAL, n));
+      if (n === current) return;
+      frames[current - 1].classList.remove('active');
+      current = n;
+      frames[current - 1].classList.add('active');
+      counter.textContent = current + ' / ' + TOTAL;
+      btnPrev.disabled = current === 1;
+      btnNext.disabled = current === TOTAL;
+    }
+
+    function next() { goTo(current + 1); }
+    function prev() { goTo(current - 1); }
+
+    btnPrev.addEventListener('click', prev);
+    btnNext.addEventListener('click', next);
+    btnPrev.disabled = true;
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+      else if (e.key === 'Home') { e.preventDefault(); goTo(1); }
+      else if (e.key === 'End') { e.preventDefault(); goTo(TOTAL); }
+      else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    // Fullscreen
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+    document.getElementById('btn-fs').addEventListener('click', toggleFullscreen);
+
+    // Auto-scale to fit viewport (95% fit)
+    function rescale() {
+      const vw = viewport.clientWidth;
+      const vh = viewport.clientHeight;
+      const slideW = scaler.offsetWidth;
+      const slideH = scaler.offsetHeight;
+      const scale = Math.min(vw / slideW, vh / slideH) * 0.95;
+      scaler.style.transform = 'scale(' + scale + ')';
+    }
+
+    window.addEventListener('resize', rescale);
+    document.addEventListener('fullscreenchange', () => setTimeout(rescale, 100));
+    rescale();
+  </script>
+</body>
+</html>

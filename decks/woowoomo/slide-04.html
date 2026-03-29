@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 30pt 44pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14pt;">
+    <div style="display: flex; align-items: center; gap: 10pt;">
+      <p style="display: inline-block; padding: 3pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;">AI ①</p>
+      <h2 style="font-size: 17pt; font-weight: 600; color: #1a1a1a;">Vision AI가 영상을 분석하고 행동을 해석하는 방법</h2>
+    </div>
+    <p style="font-size: 10pt; color: #ccc;">04</p>
+  </div>
+
+  <!-- 2컬럼 레이아웃 -->
+  <div style="flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; gap: 20pt;">
+
+    <!-- 왼쪽: 3단계 파이프라인 -->
+    <div style="display: flex; flex-direction: column; gap: 6pt;">
+
+      <!-- 입력 -->
+      <div style="background: #f5f5f0; border-radius: 8pt; padding: 9pt 12pt;">
+        <p style="font-size: 8pt; color: #999; letter-spacing: 0.04em; margin-bottom: 3pt;">INPUT</p>
+        <p style="font-size: 10pt; font-weight: 700; color: #1a1a1a; margin-bottom: 3pt;">유튜브 — 조코딩 라이브 시청 중</p>
+        <p style="font-size: 8.5pt; color: #888; line-height: 1.5;">5분마다 화면 캡처(JPEG 1280px) + 30초마다 포커스 앱·윈도우 타이틀 기록</p>
+      </div>
+
+      <div style="text-align: center; font-size: 10pt; color: #ccc;">↓</div>
+
+      <!-- Step 1 -->
+      <div style="border: 1px solid #e0e0e0; border-radius: 8pt; padding: 9pt 12pt;">
+        <div style="display: flex; align-items: center; gap: 8pt; margin-bottom: 4pt;">
+          <p style="font-size: 8pt; font-weight: 700; color: #fff; background: #1a1a1a; padding: 2pt 6pt; border-radius: 3pt;">Step 1</p>
+          <p style="font-size: 9pt; font-weight: 700; color: #1a1a1a;">Vision 설명 — Claude Vision API (단독 call)</p>
+        </div>
+        <p style="font-size: 8.5pt; color: #666; line-height: 1.5;">화면을 있는 그대로 묘사. 유튜브 영상이라면 <strong style="color: #1a1a1a;">영상 안 발표자 화면</strong>까지 분석 대상으로 지정.</p>
+        <p style="font-size: 8pt; font-family: monospace; color: #888; margin-top: 5pt; background: #fafafa; padding: 5pt 8pt; border-radius: 4pt; line-height: 1.6;">"VS Code에서 useEffect 코드 작성 중 → Terminal npm run dev → 브라우저 전환"</p>
+      </div>
+
+      <div style="text-align: center; font-size: 10pt; color: #ccc;">↓</div>
+
+      <!-- Step 2 -->
+      <div style="border: 1px solid #e0e0e0; border-radius: 8pt; padding: 9pt 12pt;">
+        <div style="display: flex; align-items: center; gap: 8pt; margin-bottom: 4pt;">
+          <p style="font-size: 8pt; font-weight: 700; color: #fff; background: #1a1a1a; padding: 2pt 6pt; border-radius: 3pt;">Step 2</p>
+          <p style="font-size: 9pt; font-weight: 700; color: #1a1a1a;">Categorization — 별도 API call 분리 (AGENTS.md 필수 규칙)</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 5pt; flex-wrap: wrap; margin-bottom: 4pt;">
+          <p style="font-size: 8pt; font-weight: 700; color: #1a1a1a; background: #f0f0e8; padding: 2pt 7pt; border-radius: 4pt;">coding ✓</p>
+          <p style="font-size: 8pt; color: #ccc; padding: 2pt 7pt;">writing</p>
+          <p style="font-size: 8pt; color: #ccc; padding: 2pt 7pt;">reading</p>
+          <p style="font-size: 8pt; color: #ccc; padding: 2pt 7pt;">media</p>
+          <p style="font-size: 8pt; color: #ccc; padding: 2pt 7pt;">messaging</p>
+          <p style="font-size: 8pt; color: #ccc; padding: 2pt 7pt;">other...</p>
+        </div>
+        <p style="font-size: 8pt; color: #aaa; line-height: 1.4;">두 단계를 합치면 AI가 분류를 맞추려고 시각 설명을 왜곡함 (Goodhart's Law) — 반드시 분리</p>
+      </div>
+
+    </div>
+
+    <!-- 오른쪽: 컨텍스트 전환 감지 + 해석 + 제안 -->
+    <div style="display: flex; flex-direction: column; gap: 8pt;">
+
+      <p style="font-size: 8pt; color: #999; letter-spacing: 0.04em;">OUTPUT</p>
+
+      <!-- 컨텍스트 전환 감지 -->
+      <div style="background: #f5f5f0; border-radius: 8pt; padding: 10pt 12pt;">
+        <p style="font-size: 9pt; font-weight: 700; color: #1a1a1a; margin-bottom: 5pt;">컨텍스트 전환 감지</p>
+        <div style="display: flex; flex-direction: column; gap: 4pt;">
+          <div style="display: flex; align-items: center; gap: 6pt;">
+            <p style="font-size: 8pt; color: #888; width: 60pt; flex-shrink: 0;">Window Watcher</p>
+            <p style="font-size: 8pt; color: #555;">"조코딩 - YouTube" 타이틀 변화 감지</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6pt;">
+            <p style="font-size: 8pt; color: #888; width: 60pt; flex-shrink: 0;">Vision</p>
+            <p style="font-size: 8pt; color: #555;">coding → media category 변화 감지</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 행동 해석 -->
+      <div style="background: #f5f5f0; border-radius: 8pt; padding: 10pt 12pt;">
+        <p style="font-size: 9pt; font-weight: 700; color: #1a1a1a; margin-bottom: 5pt;">행동 해석</p>
+        <p style="font-size: 8.5pt; color: #555; line-height: 1.6;">coding 블록 38분 집중 →<br>유튜브로 컨텍스트 전환, 목표 대비 집중도 63%</p>
+      </div>
+
+      <!-- 다음 액션 제안 -->
+      <div style="background: #1a1a1a; border-radius: 8pt; padding: 10pt 12pt; flex: 1;">
+        <p style="font-size: 9pt; font-weight: 700; color: #fff; margin-bottom: 5pt;">다음 액션 제안</p>
+        <p style="font-size: 8.5pt; color: #999; line-height: 1.7;">"useEffect 작업이 중단됐습니다.<br>지금 25분 딥워크 블록으로 돌아가세요.<br>오전 이 시간대가 오늘 집중도 최고입니다."</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

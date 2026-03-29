@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16pt;">
+    <div style="display: flex; align-items: center; gap: 10pt;">
+      <p style="display: inline-block; padding: 4pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;">SOLUTION</p>
+      <h2 style="font-size: 18pt; font-weight: 600; color: #1a1a1a;">우우모: 당신이 놓친 하루를 복원하는 AI 에이전트</h2>
+    </div>
+    <p style="font-size: 10pt; color: #ccc;">03</p>
+  </div>
+
+  <!-- 한 문장 정의 -->
+  <div style="border-left: 3pt solid #1a1a1a; padding: 10pt 16pt; background: #f5f5f0; border-radius: 0 8pt 8pt 0; margin-bottom: 20pt;">
+    <p style="font-size: 12pt; color: #1a1a1a; line-height: 1.6; font-style: italic;">
+      "우우모는 시간을 추적하는 게 아니라, 사람의 <strong>'인지 상태'</strong>를 저장하고 복원하는 시스템입니다."
+    </p>
+  </div>
+
+  <!-- 흐름 + 3가지 기능 -->
+  <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt;">
+    <!-- 왼쪽: 핵심 흐름 -->
+    <div>
+      <p style="font-size: 9pt; color: #999; letter-spacing: 0.05em; margin-bottom: 12pt;">핵심 흐름</p>
+      <div style="display: flex; flex-direction: column; gap: 8pt;">
+        <div style="display: flex; align-items: center; gap: 10pt;">
+          <div style="width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <p style="font-size: 9pt; color: #fff; font-weight: 700;">1</p>
+          </div>
+          <p style="font-size: 11pt; color: #1a1a1a; font-weight: 500;">매일 아침 목표 설정</p>
+        </div>
+        <div style="width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;"></div>
+        <div style="display: flex; align-items: center; gap: 10pt;">
+          <div style="width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <p style="font-size: 9pt; color: #fff; font-weight: 700;">2</p>
+          </div>
+          <p style="font-size: 11pt; color: #1a1a1a; font-weight: 500;">5분마다 화면 스크린샷</p>
+        </div>
+        <div style="width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;"></div>
+        <div style="display: flex; align-items: center; gap: 10pt;">
+          <div style="width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <p style="font-size: 9pt; color: #fff; font-weight: 700;">3</p>
+          </div>
+          <p style="font-size: 11pt; color: #1a1a1a; font-weight: 500;">Claude Vision 분석</p>
+        </div>
+        <div style="width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;"></div>
+        <div style="display: flex; align-items: center; gap: 10pt;">
+          <div style="width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <p style="font-size: 9pt; color: #fff; font-weight: 700;">4</p>
+          </div>
+          <p style="font-size: 11pt; color: #1a1a1a; font-weight: 500;">목표-행동 갭 분석</p>
+        </div>
+        <div style="width: 1pt; height: 10pt; background: #ddd; margin-left: 10.5pt;"></div>
+        <div style="display: flex; align-items: center; gap: 10pt;">
+          <div style="width: 22pt; height: 22pt; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <p style="font-size: 9pt; color: #fff; font-weight: 700;">5</p>
+          </div>
+          <p style="font-size: 11pt; color: #1a1a1a; font-weight: 500;">저녁 자동 리포트 + 다음 행동 제안</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 3가지 핵심 기능 -->
+    <div style="display: flex; flex-direction: column; gap: 12pt;">
+      <p style="font-size: 9pt; color: #999; letter-spacing: 0.05em;">3가지 핵심 기능</p>
+      <div style="background: #f5f5f0; border-radius: 10pt; padding: 14pt 16pt;">
+        <p style="font-size: 10pt; font-weight: 700; color: #1a1a1a; margin-bottom: 4pt;">Zero-Effort Tracking</p>
+        <p style="font-size: 10pt; color: #666; line-height: 1.5;">아무것도 입력하지 않아도 Vision AI가 집중과 딴짓을 자동 감지</p>
+      </div>
+      <div style="background: #f5f5f0; border-radius: 10pt; padding: 14pt 16pt;">
+        <p style="font-size: 10pt; font-weight: 700; color: #1a1a1a; margin-bottom: 4pt;">Contextual Time-Travel</p>
+        <p style="font-size: 10pt; color: #666; line-height: 1.5;">중단된 작업의 맥락 완벽 보관 — 뇌의 로딩 시간 제로</p>
+      </div>
+      <div style="background: #1a1a1a; border-radius: 10pt; padding: 14pt 16pt;">
+        <p style="font-size: 10pt; font-weight: 700; color: #ffffff; margin-bottom: 4pt;">저녁 6시 AI 브리핑</p>
+        <p style="font-size: 10pt; color: #999; line-height: 1.5;">AI가 하루 전체를 자동 분석해 리포트와 행동 제안 생성</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

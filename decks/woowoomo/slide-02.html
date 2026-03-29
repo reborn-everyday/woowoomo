@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24pt;">
+    <div style="display: flex; align-items: center; gap: 10pt;">
+      <p style="display: inline-block; padding: 4pt 10pt; background: #1a1a1a; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600; letter-spacing: 0.04em;">PROBLEM</p>
+      <h2 style="font-size: 20pt; font-weight: 600; color: #1a1a1a;">문제는 의지력이 아닙니다</h2>
+    </div>
+    <p style="font-size: 10pt; color: #ccc;">02</p>
+  </div>
+
+  <!-- 메인 콘텐츠 -->
+  <div style="flex: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 28pt;">
+    <!-- 왼쪽: 스탯 + 사례 -->
+    <div style="display: flex; flex-direction: column; gap: 14pt;">
+      <div style="background: #f5f5f0; border-radius: 10pt; padding: 16pt 20pt;">
+        <div style="display: flex; align-items: baseline; gap: 8pt;">
+          <p style="font-size: 36pt; font-weight: 700; color: #1a1a1a; letter-spacing: -0.03em;">3시간</p>
+          <p style="font-size: 11pt; color: #666;">미만</p>
+        </div>
+        <p style="font-size: 10pt; color: #888; margin-top: 4pt;">지식 노동자의 하루 평균 딥워크</p>
+      </div>
+      <div style="border-left: 3pt solid #1a1a1a; padding: 12pt 16pt; background: #fafafa; border-radius: 0 8pt 8pt 0;">
+        <p style="font-size: 10pt; color: #555; line-height: 1.8;">
+          "아침에 오늘 꼭 끝내야 할 업무를 정했다.<br>
+          오후 7시, <strong style="color: #1a1a1a;">나는 그것을 끝내지 못한 나를 발견했다.</strong><br>
+          예상치 못한 미팅, 질문, 업무 요청...<br>
+          결국 오후 10시까지 야근. <em>매일 반복.</em>"
+        </p>
+        <p style="font-size: 8pt; color: #aaa; margin-top: 8pt;">발생 빈도: 매일 1–3회</p>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 경쟁 비교 -->
+    <div>
+      <p style="font-size: 9pt; color: #999; letter-spacing: 0.05em; margin-bottom: 10pt;">기존 솔루션의 한계</p>
+      <table style="width: 100%; border-collapse: collapse; font-size: 9pt;">
+        <thead>
+          <tr>
+            <th style="text-align: left; padding: 6pt 8pt; font-size: 8pt; color: #aaa; font-weight: 500; border-bottom: 1px solid #eee;"></th>
+            <th style="text-align: center; padding: 6pt 8pt; font-size: 8pt; color: #aaa; font-weight: 500; border-bottom: 1px solid #eee;">RescueTime</th>
+            <th style="text-align: center; padding: 6pt 8pt; font-size: 8pt; color: #aaa; font-weight: 500; border-bottom: 1px solid #eee;">Toggl</th>
+            <th style="text-align: center; padding: 6pt 8pt; font-size: 9pt; color: #1a1a1a; font-weight: 700; border-bottom: 2px solid #1a1a1a; background: #f5f5f0;">우우모</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 6pt 8pt; color: #888; border-bottom: 1px solid #f0f0f0;">수집</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;">앱 기록</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;">수동 타이머</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; border-bottom: 1px solid #f0f0f0; background: #fafafa;">Vision AI 자동</td>
+          </tr>
+          <tr>
+            <td style="padding: 6pt 8pt; color: #888; border-bottom: 1px solid #f0f0f0;">분석</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;">카테고리 집계</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;">프로젝트 시간</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; border-bottom: 1px solid #f0f0f0; background: #fafafa;">맥락·전환·이유</td>
+          </tr>
+          <tr>
+            <td style="padding: 6pt 8pt; color: #888; border-bottom: 1px solid #f0f0f0;">목표 연동</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;">없음</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa; border-bottom: 1px solid #f0f0f0;">있음</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; border-bottom: 1px solid #f0f0f0; background: #fafafa;">Alignment Score</td>
+          </tr>
+          <tr>
+            <td style="padding: 6pt 8pt; color: #888;">프라이버시</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa;">클라우드</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #aaa;">클라우드</td>
+            <td style="padding: 6pt 8pt; text-align: center; color: #1a1a1a; font-weight: 600; background: #fafafa;">완전 로컬</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
