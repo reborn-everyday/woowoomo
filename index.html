@@ -1,2 +1,123 @@
-<!doctype html>
-<meta http-equiv="refresh" content="0; url=./decks/woowoomo/viewer.html">
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>우우모 — 우리는 우리를 모른다</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background: #0d0d0d;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 48px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 56px;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; }
+    .logo-name { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+    .badge {
+      padding: 5px 14px;
+      border: 1px solid #333;
+      border-radius: 20px;
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 0.06em;
+    }
+    .hero { margin-bottom: 64px; }
+    .hero-label { font-size: 11px; color: #555; letter-spacing: 0.08em; margin-bottom: 16px; }
+    .hero-title {
+      font-size: 48px;
+      font-weight: 500;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    .hero-desc { font-size: 15px; color: #888; line-height: 1.8; max-width: 600px; }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 32px;
+      padding: 14px 28px;
+      background: #ffffff;
+      color: #1a1a1a;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .cta:hover { background: #e0e0e0; }
+    .section-label { font-size: 11px; color: #555; letter-spacing: 0.08em; margin-bottom: 20px; }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 64px;
+    }
+    .photo-grid img {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 12px;
+      display: block;
+    }
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding-top: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    footer p { font-size: 12px; color: #444; }
+    footer a { color: #666; text-decoration: none; }
+    footer a:hover { color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <span class="logo-name">우우모</span>
+    </div>
+    <span class="badge">RALPHTHON SEOUL 2025</span>
+  </header>
+
+  <section class="hero">
+    <p class="hero-label">PROJECT</p>
+    <h1 class="hero-title">
+      우리는<br>우리를 모른다
+    </h1>
+    <p class="hero-desc">
+      사용자의 화면 활동을 AI가 자동으로 관찰·해석해,<br>
+      스스로는 놓치기 쉬운 집중 패턴, 반복 병목,<br>
+      목표와 실제 행동의 괴리를 발견하고<br>
+      다음 행동까지 제안하는 의사결정 대리 도구
+    </p>
+    <a class="cta" href="./decks/woowoomo/viewer.html">
+      발표 슬라이드 보기 →
+    </a>
+  </section>
+
+  <section>
+    <p class="section-label">PHOTOS</p>
+    <div class="photo-grid">
+      <img src="decks/woowoomo/wwm_photo1.png" alt="우우모 사진 1">
+      <img src="decks/woowoomo/wwm_photo2.png" alt="우우모 사진 2">
+      <img src="decks/woowoomo/wwm_photo3.png" alt="우우모 사진 3">
+    </div>
+  </section>
+
+  <footer>
+    <p>팀 우우모 — 홍다솔 · 홍연정 · 권오영 · 조용래</p>
+    <a href="https://github.com/reborn-everyday/woowoomo">GitHub →</a>
+  </footer>
+</body>
+</html>
